@@ -26,12 +26,19 @@ With this server, you can **manage Backlog issues, comments, wikis, and attachme
 ```bash
 backlog-mcp-server/
 ├── src/
-│   ├── server.ts        # MCP Server 入口
-│   ├── backlogClient.ts # Backlog REST API 封装
-│   ├── tools/           # 各类工具定义 (issues/wiki/comments/attachments)
-│   └── utils/           # 公共方法 (鉴权/错误处理/分页等)
-├── package.json
-├── tsconfig.json
+│   ├── server.ts              # MCP Server 入口
+│   ├── backlogClient.ts       # Backlog REST API 封装
+│   ├── tools/                 # MCP 工具实现
+│   │   ├── issues.ts          # 处理 Backlog 任务
+│   │   ├── comments.ts        # 处理任务评论
+│   │   ├── wiki.ts            # Wiki 页面工具
+│   │   ├── attachments.ts     # 附件相关操作
+│   │   └── activities.ts      # 项目活动日志
+│   └── utils/                 # 通用工具函数
+│       ├── auth.ts            # 鉴权辅助
+│       ├── errors.ts          # 错误格式化
+│       └── pagination.ts      # 分页处理
+├── docs/                      # 文档与设计草稿
 ├── README.md
 └── LICENSE
 ```
