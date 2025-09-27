@@ -6,12 +6,12 @@ import type { Tool } from './issues';
 
 const paginationSchema = z.object({
   offset: z
-    .number({ invalid_type_error: 'offset must be a number' })
+    .number()
     .int('offset must be an integer value')
     .min(0, 'offset cannot be negative')
     .optional(),
   limit: z
-    .number({ invalid_type_error: 'limit must be a number' })
+    .number()
     .int('limit must be an integer value')
     .positive('limit must be greater than zero')
     .optional(),

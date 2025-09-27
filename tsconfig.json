@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "outDir": "dist",
+    "rootDir": "src",
+    "strict": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "lib": ["ES2022", "DOM"],
+    "types": ["node", "jest"],
+    "baseUrl": ".",
+    "paths": {
+      "@modelcontextprotocol/sdk/server": [
+        "node_modules/@modelcontextprotocol/sdk/dist/cjs/server/index.d.ts"
+      ],
+      "@modelcontextprotocol/sdk/server/stdio": [
+        "node_modules/@modelcontextprotocol/sdk/dist/cjs/server/stdio.d.ts"
+      ]
+    }
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["__tests__", "dist", "node_modules"]
+}

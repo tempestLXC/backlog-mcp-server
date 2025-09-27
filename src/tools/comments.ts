@@ -50,19 +50,19 @@ const toCommentInfo = (comment: BacklogComment): CommentInfo => ({
 
 const paginationSchema = z.object({
   offset: z
-    .number({ invalid_type_error: 'offset must be a number' })
+    .number()
     .int('offset must be an integer value')
     .min(0, 'offset cannot be negative')
     .optional(),
   limit: z
-    .number({ invalid_type_error: 'limit must be a number' })
+    .number()
     .int('limit must be an integer value')
     .positive('limit must be greater than zero')
     .optional(),
 });
 
 const issueIdSchema = z
-  .number({ invalid_type_error: 'issueId must be a number' })
+  .number()
   .int('issueId must be an integer value')
   .positive('issueId must be greater than zero');
 
@@ -72,7 +72,7 @@ const commentPayloadSchema = z
     notifiedUserIds: z
       .array(
         z
-          .number({ invalid_type_error: 'notifiedUserIds must contain numbers' })
+          .number()
           .int('notified user ids must be integers')
           .positive('notified user ids must be greater than zero'),
       )
@@ -100,7 +100,7 @@ const removeUndefinedValues = <T extends Record<string, unknown>>(payload: T) =>
   }, {});
 
 const commentIdSchema = z
-  .number({ invalid_type_error: 'commentId must be a number' })
+  .number()
   .int('commentId must be an integer value')
   .positive('commentId must be greater than zero');
 

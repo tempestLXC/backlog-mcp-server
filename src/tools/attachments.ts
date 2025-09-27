@@ -4,12 +4,12 @@ import { AttachmentPayload, BacklogClient } from '../backlogClient';
 import type { Tool } from './issues';
 
 const issueIdSchema = z
-  .number({ invalid_type_error: 'issueId must be a number' })
+  .number()
   .int('issueId must be an integer value')
   .positive('issueId must be greater than zero');
 
 const attachmentIdSchema = z
-  .number({ invalid_type_error: 'attachmentId must be a number' })
+  .number()
   .int('attachmentId must be an integer value')
   .positive('attachmentId must be greater than zero');
 
