@@ -12,6 +12,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: write
+
 jobs:
   build-and-test:
     # Use Ubuntu as the build environment because it closely matches local development.
@@ -38,8 +41,11 @@ jobs:
         run: npm run build
 
       # Execute the unit test suite with Jest to ensure application correctness.
-      - name: Run tests
-        run: npm test -- --ci --runInBand
+      - name: Run tests with coverage
+        run: npm test -- --ci --runInBand --coverage
+
+      - name: Generate coverage badge data
+        run: npm run coverage:badge
 
       # Upload Jest coverage results as an artifact to aid in reviewing test completeness.
       - name: Upload coverage report
@@ -49,3 +55,10 @@ jobs:
           name: coverage-report
           path: coverage
           if-no-files-found: ignore
+
+      - name: Commit updated coverage badge
+        if: github.ref == 'refs/heads/main'
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 'chore: update coverage badge'
+          file_pattern: .github/badges/coverage.json
