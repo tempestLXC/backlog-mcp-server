@@ -1,0 +1,51 @@
+# GitHub Actions workflow for continuous integration of the backlog-mcp-server project
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+# Prevent overlapping workflow runs on the same ref to reduce resource usage.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    # Use Ubuntu as the build environment because it closely matches local development.
+    runs-on: ubuntu-latest
+
+    steps:
+      # Check out the repository code so the workflow can access it.
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      # Set up the required Node.js version and enable dependency caching for faster builds.
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # Install dependencies exactly as locked in package-lock.json to ensure reproducibility.
+      - name: Install dependencies
+        run: npm ci
+
+      # Compile the TypeScript sources to verify they build without errors.
+      - name: Build TypeScript project
+        run: npm run build
+
+      # Execute the unit test suite with Jest to ensure application correctness.
+      - name: Run tests
+        run: npm test -- --ci --runInBand
+
+      # Upload Jest coverage results as an artifact to aid in reviewing test completeness.
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage
+          if-no-files-found: ignore
