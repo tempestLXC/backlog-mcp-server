@@ -1,8 +1,12 @@
 # Backlog MCP Server
 
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](./LICENSE)
-[![TypeScript](https://img.shields.io/badge/language-TypeScript-blue)](https://www.typescriptlang.org/)
-[![MCP](https://img.shields.io/badge/protocol-MCP-green)](https://github.com/modelcontextprotocol)
+[![CI](https://img.shields.io/github/actions/workflow/status/modelcontextprotocol/backlog-mcp-server/ci.yml?label=CI&logo=githubactions)](https://github.com/modelcontextprotocol/backlog-mcp-server/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/modelcontextprotocol/backlog-mcp-server/main/.github/badges/coverage.json)](https://github.com/modelcontextprotocol/backlog-mcp-server/actions/workflows/ci.yml)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](./LICENSE)
+![Node.js ≥ 18](https://img.shields.io/badge/Node.js-%E2%89%A518-43853D?logo=node.js&logoColor=white)
+[![TypeScript 5.9](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+![Tests: Jest](https://img.shields.io/badge/Tests-Jest-99424F?logo=jest&logoColor=white)
+[![Protocol: MCP](https://img.shields.io/badge/Protocol-MCP-1F6FEB?logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTUwIDBDMjIuMzc2IDAgMCAyMi4zNzYgMCA1MHMgMjIuMzc2IDUwIDUwIDUwIDUwLTIyLjM3NiA1MC01MFM3Ny42MjQgMCA1MCAweiIgZmlsbD0iI2ZmZiIvPjxwYXRoIGQ9Ik01MCAxNS4yNWMtMTkuMjI1IDAtMzQuNzUgMTUuNTI1LTM0Ljc1IDM0Ljc1UzMwLjc3NSA4NC43NSA1MCA4NC43NSA4NC43NSA2OS4yMjUgODQuNzUgNTBTNjkuMjI1IDE1LjI1IDUwIDE1LjI1em0tNi4yNSAyMS4yNWE2LjI1IDYuMjUgMCAxIDEgMTIuNSAwIDYuMjUgNi4yNSAwIDEgMS0xMi41IDB6bTAgMTUuNjI1YTYuMjUgNi4yNSAwIDEgMSAxMi41IDAgNi4yNSA2LjI1IDAgMSAxLTEyLjUgMHptNi4yNSA0My4xMjVhNi4yNSA2LjI1IDAgMSAxIDEyLjUgMCA2LjI1IDYuMjUgMCAxIDEtMTIuNSAwem0yMS44NzUtMTcuNWExMi41IDEyLjUgMCAxIDEgMjUgMCAxMi41IDEyLjUgMCAxIDEtMjUgMHptLTI3LjUgMTIuNWExMi41IDEyLjUgMCAxIDEgMjUgMCAxMi41IDEyLjUgMCAxIDEtMjUgMHoiIGZpbGw9IiMxZjZmZWIiLz48L3N2Zz4=)](https://github.com/modelcontextprotocol)
 
 A **Model Context Protocol (MCP) server** for [Backlog](https://backlog.com).
 With this server, you can **manage Backlog issues, comments, wikis, and attachments directly from MCP clients** such as **Codex CLI**.
