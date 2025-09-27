@@ -1,7 +1,7 @@
 # Backlog MCP Server
 
-[![CI](https://img.shields.io/github/actions/workflow/status/modelcontextprotocol/backlog-mcp-server/ci.yml?label=CI&logo=githubactions)](https://github.com/modelcontextprotocol/backlog-mcp-server/actions/workflows/ci.yml)
-[![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/modelcontextprotocol/backlog-mcp-server/main/.github/badges/coverage.json)](https://github.com/modelcontextprotocol/backlog-mcp-server/actions/workflows/ci.yml)
+[![CI](https://github.com/tempestLXC/backlog-mcp-server/actions/workflows/ci.yml/badge.svg)](https://github.com/tempestLXC/backlog-mcp-server/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/tempestLXC/backlog-mcp-server/main/.github/badges/coverage.json)](https://github.com/tempestLXC/backlog-mcp-server/actions/workflows/ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](./LICENSE)
 ![Node.js ≥ 18](https://img.shields.io/badge/Node.js-%E2%89%A518-43853D?logo=node.js&logoColor=white)
 [![TypeScript 5.9](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
