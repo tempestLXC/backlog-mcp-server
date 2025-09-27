@@ -94,7 +94,14 @@ args = ["/absolute/path/to/dist/server.js"]
 env = { BACKLOG_BASE_URL = "https://your-space.backlog.jp", BACKLOG_API_KEY = "your_api_key_here" }
 ```
 
-重启 Codex CLI 后，即可通过 MCP 使用 Backlog 工具。  
+重启 Codex CLI 后，即可通过 MCP 使用 Backlog 工具。
+
+### 4. 运行测试
+在提交改动前，可运行测试套件以确保工具行为符合预期：
+
+```bash
+npm run test
+```
 
 ---
 
