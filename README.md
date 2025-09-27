@@ -4,8 +4,23 @@
 [![TypeScript](https://img.shields.io/badge/language-TypeScript-blue)](https://www.typescriptlang.org/)
 [![MCP](https://img.shields.io/badge/protocol-MCP-green)](https://github.com/modelcontextprotocol)
 
-A **Model Context Protocol (MCP) server** for [Backlog](https://backlog.com).  
-With this server, you can **manage Backlog issues, comments, wikis, and attachments directly from MCP clients** such as **Codex CLI**.  
+A **Model Context Protocol (MCP) server** for [Backlog](https://backlog.com).
+With this server, you can **manage Backlog issues, comments, wikis, and attachments directly from MCP clients** such as **Codex CLI**.
+
+---
+
+## 📚 目录 / Table of Contents
+
+- [✨ Key Features](#-key-features)
+- [📂 项目结构](#-项目结构)
+- [🔧 先决条件](#-先决条件)
+- [⚙️ 安装与构建](#️-安装与构建)
+- [▶️ 使用方法](#️-使用方法)
+- [🧰 可用 MCP 工具](#-可用-mcp-工具)
+- [🛠️ 开发指南](#️-开发指南)
+- [📜 License](#-license)
+- [🤝 贡献](#-贡献)
+- [🔮 未来计划](#-未来计划)
 
 ---
 
@@ -42,6 +57,16 @@ backlog-mcp-server/
 ├── README.md
 └── LICENSE
 ```
+
+---
+
+## 🔧 先决条件
+
+- [Node.js](https://nodejs.org/) >= 18（推荐使用最新 LTS）
+- npm >= 9
+- 可访问 Backlog 空间的 API Key（需要 Issues / Wiki / Attachments 权限）
+
+在首次运行前，请确认 `BACKLOG_BASE_URL` 没有尾随 `/api/v2`，该路径由服务器自动补齐。例如：`https://your-space.backlog.jp` ✅，`https://your-space.backlog.jp/api/v2` ❌。
 
 ---
 
@@ -102,6 +127,23 @@ env = { BACKLOG_BASE_URL = "https://your-space.backlog.jp", BACKLOG_API_KEY = "y
 ```bash
 npm run test
 ```
+
+> 💡 **调试技巧**：先执行 `npm run build && node dist/server.js`，再在 MCP 客户端调用 `ping` 工具验证连接是否成功，预期返回 `pong:<你的输入>`。
+
+---
+
+## 🧰 可用 MCP 工具
+
+| 工具名称 | 操作范围 | 典型用法 |
+| --- | --- | --- |
+| `ping` | 健康检查 | 回显 `pong:<message>`，快速验证连接是否正常 |
+| `issues` / `listIssues` / `getIssue` / `createIssue` / `updateIssue` / `deleteIssue` / `transitionIssue` | Backlog 任务 | 列表、查询、创建、更新、删除任务以及执行状态流转 |
+| `comments` / `listComments` / `addComment` / `updateComment` / `deleteComment` | 任务评论 | 查看或管理指定任务的评论记录 |
+| `attachments` | 任务附件 | 上传、列出或删除 Backlog 任务附件（上传需提供 Base64 文件内容） |
+| `wiki` / `searchWiki` / `getWiki` / `createWiki` / `updateWiki` / `deleteWiki` | Wiki 页面 | 搜索、读取和维护项目 Wiki 页面 |
+| `activities` | 项目活动 | 查看项目的最近活动日志，便于同步团队动态 |
+
+表格中的工具名称均与 MCP 客户端调用时的 `tool` 字段一致，可根据实际需求组合使用。
 
 ---
 
