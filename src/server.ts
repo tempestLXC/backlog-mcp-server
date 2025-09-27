@@ -1,4 +1,6 @@
-import { Server, StdioServerTransport } from '@modelcontextprotocol/sdk/server';
+import { Server } from '@modelcontextprotocol/sdk/server';
+import type { ServerOptions } from '@modelcontextprotocol/sdk/server';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio';
 
 import { BacklogClient } from './backlogClient';
 import { handleError } from './utils/errors';
@@ -45,14 +47,13 @@ type PingInput = string;
  * the business logic (tools) that the server exposes.
  */
 const transport = new StdioServerTransport();
+const serverOptions = { transport } as unknown as ServerOptions;
 const server = new Server(
   {
     name: 'backlog-mcp',
     version: '0.1.0',
   },
-  {
-    transport,
-  },
+  serverOptions,
 );
 
 console.info('[Backlog MCP] Server initialized. Registering tools...');
@@ -648,24 +649,25 @@ console.info(`[Backlog MCP] Registered tools: ${registeredToolNames.join(', ')}`
 
 console.info('[Backlog MCP] Starting server using stdio transport...');
 
-// Different SDK versions accept the transport either through the constructor or
-// as a parameter for `start`. We bind the method so we can dynamically detect
-// the supported signature at runtime while keeping the implementation concise.
-const startServer = server.start.bind(server) as
-  | (() => Promise<void>)
-  | ((transport: StdioServerTransport) => Promise<void>);
+const serverWithLifecycle = server as Server & {
+  start?: (...args: unknown[]) => unknown;
+  connect?: (transport: StdioServerTransport) => Promise<void>;
+};
 
-if (typeof startServer !== 'function') {
-  throw new Error('MCP SDK Server start method is not callable.');
-}
+const startResult = (() => {
+  if (typeof serverWithLifecycle.connect === 'function') {
+    return serverWithLifecycle.connect.call(server, transport);
+  }
 
-const startResult =
-  startServer.length > 0
-    ? (startServer as (transport: StdioServerTransport) => unknown)(transport)
-    : (startServer as () => unknown)();
+  if (typeof serverWithLifecycle.start === 'function') {
+    return serverWithLifecycle.start.length > 0
+      ? serverWithLifecycle.start.call(server, transport)
+      : serverWithLifecycle.start.call(server);
+  }
 
-// Normalize the result into a promise so that both sync and async signatures are
-// handled uniformly.
+  throw new Error('MCP SDK Server does not expose a start/connect method.');
+})();
+
 Promise.resolve(startResult)
   .then(() => {
     console.info('[Backlog MCP] Server is ready to accept MCP requests.');

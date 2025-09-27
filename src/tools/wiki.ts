@@ -10,12 +10,12 @@ import type { Tool } from './issues';
 
 const paginationSchema = z.object({
   offset: z
-    .number({ invalid_type_error: 'offset must be a number' })
+    .number()
     .int('offset must be an integer value')
     .min(0, 'offset cannot be negative')
     .optional(),
   limit: z
-    .number({ invalid_type_error: 'limit must be a number' })
+    .number()
     .int('limit must be an integer value')
     .positive('limit must be greater than zero')
     .optional(),
@@ -24,18 +24,18 @@ const paginationSchema = z.object({
 const projectKeyOrIdSchema = z.union([
   z.string().trim().min(1, 'projectKeyOrId is required'),
   z
-    .number({ invalid_type_error: 'projectKeyOrId must be a string or number' })
+    .number()
     .int('projectKeyOrId must be an integer value')
     .positive('projectKeyOrId must be greater than zero'),
 ]);
 
 const wikiIdSchema = z
-  .number({ invalid_type_error: 'wikiId must be a number' })
+  .number()
   .int('wikiId must be an integer value')
   .positive('wikiId must be greater than zero');
 
 const projectIdSchema = z
-  .number({ invalid_type_error: 'projectId must be a number' })
+  .number()
   .int('projectId must be an integer value')
   .positive('projectId must be greater than zero');
 
