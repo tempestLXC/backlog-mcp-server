@@ -2,16 +2,29 @@ import { ZodError } from 'zod';
 
 import { BacklogClient } from '../src/backlogClient';
 import {
+  createCreateIssueTool,
+  createDeleteIssueTool,
   createGetIssueTool,
+  createIssuesTool,
   createListIssuesTool,
+  createTransitionIssueTool,
+  createUpdateIssueTool,
   IssueDetails,
   IssueListItem,
 } from '../src/tools/issues';
 
-type MockBacklogClient = Pick<BacklogClient, 'get'>;
+type MockBacklogClient = Pick<
+  BacklogClient,
+  'get' | 'post' | 'patch' | 'delete' | 'createIssue' | 'listIssues'
+>;
 
-const createMockClient = () => ({
+const createMockClient = (): MockBacklogClient => ({
   get: jest.fn(),
+  post: jest.fn(),
+  patch: jest.fn(),
+  delete: jest.fn(),
+  createIssue: jest.fn(),
+  listIssues: jest.fn(),
 });
 
 describe('listIssues tool', () => {
@@ -37,7 +50,7 @@ describe('listIssues tool', () => {
       },
     ];
 
-    const client: MockBacklogClient = createMockClient();
+    const client = createMockClient();
     (client.get as jest.Mock).mockResolvedValue(mockIssuesResponse);
 
     const tool = createListIssuesTool(client as unknown as BacklogClient);
@@ -73,7 +86,7 @@ describe('listIssues tool', () => {
   });
 
   it('omits empty optional filters when building the query string', async () => {
-    const client: MockBacklogClient = createMockClient();
+    const client = createMockClient();
     (client.get as jest.Mock).mockResolvedValue([]);
 
     const tool = createListIssuesTool(client as unknown as BacklogClient);
@@ -84,7 +97,7 @@ describe('listIssues tool', () => {
   });
 
   it('throws a validation error when the Backlog response shape is unexpected', async () => {
-    const client: MockBacklogClient = createMockClient();
+    const client = createMockClient();
     (client.get as jest.Mock).mockResolvedValue([
       {
         id: 'not-a-number',
@@ -110,7 +123,7 @@ describe('getIssue tool', () => {
       assignee: undefined,
     };
 
-    const client: MockBacklogClient = createMockClient();
+    const client = createMockClient();
     (client.get as jest.Mock).mockResolvedValue(mockIssueResponse);
 
     const tool = createGetIssueTool(client as unknown as BacklogClient);
@@ -132,7 +145,7 @@ describe('getIssue tool', () => {
   });
 
   it('encodes the issue identifier when performing the request', async () => {
-    const client: MockBacklogClient = createMockClient();
+    const client = createMockClient();
     (client.get as jest.Mock).mockResolvedValue({
       id: 42,
       issueKey: 'ISSUE KEY 42',
@@ -147,7 +160,7 @@ describe('getIssue tool', () => {
   });
 
   it('throws a validation error when the returned issue does not match the schema', async () => {
-    const client: MockBacklogClient = createMockClient();
+    const client = createMockClient();
     (client.get as jest.Mock).mockResolvedValue({
       id: 99,
       // issueKey is missing which violates the schema
@@ -157,5 +170,138 @@ describe('getIssue tool', () => {
     const tool = createGetIssueTool(client as unknown as BacklogClient);
 
     await expect(tool.execute({ issueIdOrKey: 'BUG-99' })).rejects.toBeInstanceOf(ZodError);
+  });
+});
+
+describe('issue mutation tools', () => {
+  it('creates issues with sanitized payloads and returns their keys', async () => {
+    const client = createMockClient();
+    (client.post as jest.Mock).mockResolvedValue({
+      id: 101,
+      issueKey: 'PROJ-101',
+      summary: 'Created issue',
+    });
+
+    const tool = createCreateIssueTool(client as unknown as BacklogClient);
+
+    const result = await tool.execute({
+      projectKey: 'PROJ',
+      issue: {
+        summary: 'Created issue',
+        description: undefined,
+      },
+    });
+
+    expect(client.post).toHaveBeenCalledWith('/projects/PROJ/issues', {
+      summary: 'Created issue',
+    });
+    expect(result).toEqual({ issueKey: 'PROJ-101' });
+  });
+
+  it('sanitizes update payloads and returns the updated issue key', async () => {
+    const client = createMockClient();
+    (client.patch as jest.Mock).mockResolvedValue({
+      id: 202,
+      issueKey: 'PROJ-202',
+      summary: 'Updated issue',
+    });
+
+    const tool = createUpdateIssueTool(client as unknown as BacklogClient);
+
+    const result = await tool.execute({
+      issueIdOrKey: 'PROJ-202',
+      updates: { summary: 'Updated issue', description: undefined },
+    });
+
+    expect(client.patch).toHaveBeenCalledWith('/issues/PROJ-202', {
+      summary: 'Updated issue',
+    });
+    expect(result).toEqual({ issueKey: 'PROJ-202' });
+  });
+
+  it('requires at least one field when updating an issue', async () => {
+    const client = createMockClient();
+    const tool = createUpdateIssueTool(client as unknown as BacklogClient);
+
+    await expect(
+      tool.execute({ issueIdOrKey: 'PROJ-1', updates: {} }),
+    ).rejects.toBeInstanceOf(ZodError);
+  });
+
+  it('deletes issues using encoded identifiers and returns confirmation payloads', async () => {
+    const client = createMockClient();
+    const tool = createDeleteIssueTool(client as unknown as BacklogClient);
+
+    await expect(
+      tool.execute({ issueIdOrKey: 'PROJ KEY 5' }),
+    ).resolves.toEqual({ status: 'deleted', issueKey: 'PROJ KEY 5' });
+
+    expect(client.delete).toHaveBeenCalledWith('/issues/PROJ%20KEY%205');
+  });
+
+  it('transitions issues and returns the resulting status', async () => {
+    const client = createMockClient();
+    (client.post as jest.Mock).mockResolvedValue({
+      id: 5,
+      issueKey: 'PROJ-5',
+      summary: 'Transitional issue',
+      status: { id: 1, name: 'Closed' },
+    });
+
+    const tool = createTransitionIssueTool(client as unknown as BacklogClient);
+
+    const result = await tool.execute({
+      issueIdOrKey: 'PROJ-5',
+      statusId: 4001,
+      comment: undefined,
+    });
+
+    expect(client.post).toHaveBeenCalledWith('/issues/PROJ-5/status', {
+      statusId: 4001,
+    });
+    expect(result).toEqual({ issueKey: 'PROJ-5', status: 'Closed' });
+  });
+});
+
+describe('issues aggregate tool', () => {
+  it('delegates to listIssues by default with pagination options', async () => {
+    const client = createMockClient();
+    (client.listIssues as jest.Mock).mockResolvedValue(['listed']);
+
+    const tool = createIssuesTool(client as unknown as BacklogClient);
+
+    const result = await tool.execute({
+      projectKey: 'PROJ',
+      offset: 10,
+      limit: 5,
+    });
+
+    expect(client.listIssues).toHaveBeenCalledWith('PROJ', { offset: 10, limit: 5 });
+    expect(result).toEqual(['listed']);
+  });
+
+  it('delegates to createIssue when action is create and an issue payload is provided', async () => {
+    const client = createMockClient();
+    (client.createIssue as jest.Mock).mockResolvedValue({ issueKey: 'PROJ-9' });
+
+    const tool = createIssuesTool(client as unknown as BacklogClient);
+
+    const result = await tool.execute({
+      action: 'create',
+      projectKey: 'PROJ',
+      issue: { summary: 'New issue' },
+    });
+
+    expect(client.createIssue).toHaveBeenCalledWith('PROJ', { summary: 'New issue' });
+    expect(result).toEqual({ issueKey: 'PROJ-9' });
+  });
+
+  it('throws an error when attempting to create an issue without a payload', async () => {
+    const client = createMockClient();
+    const tool = createIssuesTool(client as unknown as BacklogClient);
+
+    await expect(
+      tool.execute({ action: 'create', projectKey: 'PROJ' }),
+    ).rejects.toThrow('Issue payload is required when creating a Backlog issue.');
   });
 });
