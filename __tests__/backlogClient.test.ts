@@ -1,4 +1,5 @@
 import { BacklogClient } from '../src/backlogClient';
+import { BacklogError } from '../src/utils/errors';
 import { createAuthHeaders } from '../src/utils/auth';
 
 jest.mock('../src/utils/auth', () => ({
@@ -102,6 +103,22 @@ describe('BacklogClient', () => {
     await expect(client.delete('/issues/1')).rejects.toThrow('Backlog request failed with status 500');
   });
 
+  it('handles failures when reading error response bodies gracefully', async () => {
+    const textMock = jest.fn().mockRejectedValue(new Error('network')); // safeReadError should swallow
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 500,
+      statusText: 'Server Error',
+      text: textMock,
+      json: jest.fn(),
+    });
+
+    const client = new BacklogClient('https://backlog.test/', 'key');
+
+    await expect(client.post('/issues', {})).rejects.toThrow('Backlog request failed with status 500');
+    expect(textMock).toHaveBeenCalled();
+  });
+
   it('returns undefined for 204 responses and rethrows JSON parsing errors', async () => {
     const client = new BacklogClient('https://backlog.test/', 'key');
 
@@ -124,5 +141,31 @@ describe('BacklogClient', () => {
     });
 
     await expect(client.get('/issues/2')).rejects.toThrow(parseError);
+  });
+
+  it('validates configuration options for base URL and API key', () => {
+    expect(() => new BacklogClient({ baseUrl: '   ', apiKey: 'token' })).toThrow(
+      'Backlog base URL is required.',
+    );
+    expect(() => new BacklogClient('https://backlog.test', '')).toThrow(
+      'Backlog API key is required.',
+    );
+  });
+
+  it('normalizes configuration and converts non-error throwables into BacklogError instances', async () => {
+    fetchMock.mockRejectedValue('fatal error');
+
+    const client = new BacklogClient({ baseUrl: 'https://backlog.test', apiKey: 'token' });
+
+    await expect(client.listIssues('PRJ')).rejects.toMatchObject({
+      message: 'Failed to execute Backlog request',
+      details: 'fatal error',
+    });
+    await expect(client.listIssues('PRJ')).rejects.toBeInstanceOf(BacklogError);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://backlog.test/projects/PRJ/issues?apiKey=token',
+      expect.objectContaining({ method: 'GET' }),
+    );
   });
 });

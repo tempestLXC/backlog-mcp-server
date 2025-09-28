@@ -2,14 +2,23 @@ import { ZodError } from 'zod';
 
 import { BacklogClient } from '../src/backlogClient';
 import {
+  createAddCommentTool,
+  createDeleteCommentTool,
   createListCommentsTool,
+  createUpdateCommentTool,
   ListCommentsResult,
 } from '../src/tools/comments';
 
-type MockBacklogClient = Pick<BacklogClient, 'listComments'>;
+type MockBacklogClient = Pick<
+  BacklogClient,
+  'listComments' | 'createComment' | 'patch' | 'delete'
+>;
 
-const createMockClient = () => ({
+const createMockClient = (): MockBacklogClient => ({
   listComments: jest.fn(),
+  createComment: jest.fn(),
+  patch: jest.fn(),
+  delete: jest.fn(),
 });
 
 describe('listComments tool', () => {
@@ -31,7 +40,7 @@ describe('listComments tool', () => {
       },
     ];
 
-    const client: MockBacklogClient = createMockClient();
+    const client = createMockClient();
     (client.listComments as jest.Mock).mockResolvedValue(mockCommentsResponse);
 
     const tool = createListCommentsTool(client as unknown as BacklogClient);
@@ -64,7 +73,7 @@ describe('listComments tool', () => {
   });
 
   it('returns a null next offset when the requested limit is not reached', async () => {
-    const client: MockBacklogClient = createMockClient();
+    const client = createMockClient();
     (client.listComments as jest.Mock).mockResolvedValue([
       {
         id: 200,
@@ -82,7 +91,7 @@ describe('listComments tool', () => {
   });
 
   it('throws a validation error when Backlog returns malformed comments', async () => {
-    const client: MockBacklogClient = createMockClient();
+    const client = createMockClient();
     (client.listComments as jest.Mock).mockResolvedValue([
       {
         id: 'invalid-id',
@@ -92,5 +101,95 @@ describe('listComments tool', () => {
     const tool = createListCommentsTool(client as unknown as BacklogClient);
 
     await expect(tool.execute({ issueId: 1 })).rejects.toBeInstanceOf(ZodError);
+  });
+});
+
+describe('comment mutation tools', () => {
+  it('creates comments and maps Backlog responses into the public shape', async () => {
+    const client = createMockClient();
+    (client.createComment as jest.Mock).mockResolvedValue({
+      id: 10,
+      content: 'Created comment',
+      createdUser: { id: 77, name: 'Creator' },
+      created: '2024-07-01T10:00:00Z',
+      updated: '2024-07-01T11:00:00Z',
+    });
+
+    const tool = createAddCommentTool(client as unknown as BacklogClient);
+
+    const result = await tool.execute({
+      issueId: 55,
+      comment: {
+        content: 'Created comment',
+        notifiedUserIds: [1, 2],
+      },
+    });
+
+    expect(client.createComment).toHaveBeenCalledWith(55, {
+      content: 'Created comment',
+      notifiedUserIds: [1, 2],
+    });
+    expect(result).toEqual({
+      id: 10,
+      content: 'Created comment',
+      author: { id: 77, name: 'Creator' },
+      created: '2024-07-01T10:00:00Z',
+      updated: '2024-07-01T11:00:00Z',
+    });
+  });
+
+  it('sanitizes undefined values before patching comments and returns the normalized comment', async () => {
+    const client = createMockClient();
+    (client.patch as jest.Mock).mockResolvedValue({
+      id: 99,
+      content: 'Updated comment',
+      createdUser: null,
+      created: null,
+      updated: '2024-07-04T12:34:56Z',
+    });
+
+    const tool = createUpdateCommentTool(client as unknown as BacklogClient);
+
+    const result = await tool.execute({
+      issueId: 88,
+      commentId: 99,
+      updates: {
+        content: 'Updated comment',
+        notifiedUserIds: undefined,
+      },
+    });
+
+    expect(client.patch).toHaveBeenCalledWith(
+      '/issues/88/comments/99',
+      { content: 'Updated comment' },
+    );
+    expect(result).toEqual({
+      id: 99,
+      content: 'Updated comment',
+      author: null,
+      created: null,
+      updated: '2024-07-04T12:34:56Z',
+    });
+  });
+
+  it('requires at least one field when updating a comment', async () => {
+    const client = createMockClient();
+    const tool = createUpdateCommentTool(client as unknown as BacklogClient);
+
+    await expect(
+      tool.execute({ issueId: 1, commentId: 2, updates: {} }),
+    ).rejects.toBeInstanceOf(ZodError);
+  });
+
+  it('deletes comments after validating the identifiers', async () => {
+    const client = createMockClient();
+    const tool = createDeleteCommentTool(client as unknown as BacklogClient);
+
+    await expect(tool.execute({ issueId: 77, commentId: 33 })).resolves.toEqual({
+      status: 'deleted',
+      issueId: 77,
+      commentId: 33,
+    });
+    expect(client.delete).toHaveBeenCalledWith('/issues/77/comments/33');
   });
 });
