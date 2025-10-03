@@ -1,0 +1,118 @@
+# GitHub Actions workflow for continuous deployment of the backlog-mcp-server package
+name: CD
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Validate tag source branch
+        env:
+          PROTECTED_BRANCHES: main production
+        run: |
+          set -euo pipefail
+
+          if [ -z "${PROTECTED_BRANCHES:-}" ]; then
+            echo "No protected branches configured."
+            exit 1
+          fi
+
+          git fetch --prune --tags origin '+refs/heads/*:refs/remotes/origin/*'
+
+          if [ "${GITHUB_REF_TYPE:-}" != "tag" ]; then
+            echo "Not triggered by a tag push. Ref type: ${GITHUB_REF_TYPE:-unknown}"
+            exit 1
+          fi
+
+          TAG_COMMIT=$(git rev-parse HEAD)
+          echo "Validating tag commit $TAG_COMMIT against protected branches: ${PROTECTED_BRANCHES}"
+
+          for branch in ${PROTECTED_BRANCHES}; do
+            if git show-ref --verify --quiet "refs/remotes/origin/${branch}"; then
+              if git merge-base --is-ancestor "$TAG_COMMIT" "origin/${branch}"; then
+                echo "OK: tag commit is reachable from origin/${branch}."
+                exit 0
+              else
+                echo "NG: tag commit is NOT reachable from origin/${branch}."
+              fi
+            else
+              echo "NG: protected branch origin/${branch} not found in remotes."
+            fi
+          done
+
+          echo "Tag must be created from one of the protected branches: ${PROTECTED_BRANCHES}"
+          exit 1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Verify tag matches package.json version
+        run: |
+          set -euo pipefail
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          TAG_VERSION=${GITHUB_REF_NAME#v}
+          echo "package.json version: $PKG_VERSION"
+          echo "tag version        : $TAG_VERSION"
+          if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
+            echo "Tag version ($TAG_VERSION) does not match package.json version ($PKG_VERSION)"
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build TypeScript project
+        run: npm run build
+
+      - name: Run tests
+        run: npm test -- --ci --runInBand
+
+      - name: Pack npm tarball
+        id: pack
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          TAR_FILE=$(npm pack)
+          mv "$TAR_FILE" dist/
+          ls -l dist
+          echo "filename=$TAR_FILE" >> "$GITHUB_OUTPUT"
+          echo "filepath=dist/$TAR_FILE" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@c062e0e7cb6e7a4df0e15c6d6b26ef8e19a5dfe8
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: ${{ steps.pack.outputs.filepath }}
+          generate_release_notes: true
+          name: Backlog MCP Server ${{ github.ref_name }}
+          prerelease: ${{ startsWith(github.ref_name, 'v') && contains(github.ref_name, '-') }}
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ github.ref_name }}
+          path: dist
+          if-no-files-found: error
